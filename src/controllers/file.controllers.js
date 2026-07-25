@@ -1,15 +1,37 @@
-const fs = require('fs');
-const path = require('path');
-const File = require('../models/file.model');
+const fs = require("fs");
+const path = require("path");
+const File = require("../models/file.model");
 
-// Single file upload
+// =========================
+// Helper Functions
+// =========================
+
+const deletePhysicalFile = async (filePath) => {
+    try {
+        await fs.promises.unlink(path.resolve(filePath));
+    } catch (err) {
+        console.error("Failed to delete file:", err.message);
+    }
+};
+
+const isAuthorized = (file, user) => {
+    return (
+        file.uploadedBy.toString() === user.userId.toString() ||
+        user.role === "admin"
+    );
+};
+
+// =========================
+// Single File Upload
+// =========================
+
 const uploadFile = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded'
-            })
+                message: "No file uploaded",
+            });
         }
 
         const file = await File.create({
@@ -18,83 +40,90 @@ const uploadFile = async (req, res, next) => {
             path: req.file.path,
             mimeType: req.file.mimetype,
             size: req.file.size,
-            uploadedBy: req.user._id
-        })
+            uploadedBy: req.user.userId,
+        });
 
         return res.status(201).json({
             success: true,
             message: "File uploaded successfully.",
-            data: file
+            data: file,
         });
-
     } catch (error) {
         if (req.file) {
-            fs.unlink(req.file.path, (err) => {
-                if (err) console.error(err)
-            })
+            await deletePhysicalFile(req.file.path);
         }
-        next(error)
-    }
-}
 
-// Multiple files upload
+        next(error);
+    }
+};
+
+// =========================
+// Multiple Files Upload
+// =========================
+
 const uploadMultipleFiles = async (req, res, next) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'No files uploaded'
-            })
+                message: "No files uploaded",
+            });
         }
 
-        const filesData = req.files.map(file => ({
+        const filesData = req.files.map((file) => ({
             originalName: file.originalname,
             fileName: file.filename,
             path: file.path,
             mimeType: file.mimetype,
             size: file.size,
-            uploadedBy: req.user._id
-        }))
+            uploadedBy: req.user.userId,
+        }));
 
-        const savedFiles = await File.insertMany(filesData)
+        const savedFiles = await File.insertMany(filesData);
 
         return res.status(201).json({
             success: true,
             message: "Files uploaded successfully.",
-            data: savedFiles
+            data: savedFiles,
         });
-
     } catch (error) {
-        if (req.files) {
-            req.files.forEach(file => {
-                fs.unlink(file.path, (err) => {
-                    if (err) console.error(err)
-                })
-            })
+        if (req.files?.length) {
+            await Promise.all(
+                req.files.map((file) => deletePhysicalFile(file.path))
+            );
         }
-        next(error)
-    }
-}
 
-// Get all files (own files only, unless admin)
+        next(error);
+    }
+};
+
+// =========================
+// Get All Files
+// =========================
+
 const getAllFiles = async (req, res, next) => {
     try {
-        const filter = req.user.role === 'admin' ? {} : { uploadedBy: req.user._id };
+        const filter =
+            req.user.role === "admin"
+                ? {}
+                : { uploadedBy: req.user.userId };
 
         const files = await File.find(filter).sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
             count: files.length,
-            data: files
+            data: files,
         });
-
     } catch (error) {
         next(error);
     }
-}
+};
 
-// Get single file / download
+// =========================
+// Download / View File
+// =========================
+
 const getFileById = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -104,28 +133,27 @@ const getFileById = async (req, res, next) => {
         if (!file) {
             return res.status(404).json({
                 success: false,
-                message: 'File not found'
+                message: "File not found",
             });
         }
 
-        const isOwner = file.uploadedBy.toString() === req.user._id.toString();
-        const isAdmin = req.user.role === 'admin';
-
-        if (!isOwner && !isAdmin) {
+        if (!isAuthorized(file, req.user)) {
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to access this file'
+                message: "Not authorized to access this file",
             });
         }
 
         return res.download(path.resolve(file.path), file.originalName);
-
     } catch (error) {
         next(error);
     }
-}
+};
 
-// Delete file
+// =========================
+// Delete File
+// =========================
+
 const deleteFile = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -135,39 +163,33 @@ const deleteFile = async (req, res, next) => {
         if (!file) {
             return res.status(404).json({
                 success: false,
-                message: 'File not found'
+                message: "File not found",
             });
         }
 
-        const isOwner = file.uploadedBy.toString() === req.user._id.toString();
-        const isAdmin = req.user.role === 'admin';
-
-        if (!isOwner && !isAdmin) {
+        if (!isAuthorized(file, req.user)) {
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to delete this file'
+                message: "Not authorized to delete this file",
             });
         }
 
-        fs.unlink(path.resolve(file.path), async (err) => {
-            if (err) {
-                console.error(err);
-            }
+        await deletePhysicalFile(file.path);
+        await File.findByIdAndDelete(id);
 
-            await File.findByIdAndDelete(id);
-
-            return res.status(200).json({
-                success: true,
-                message: 'File deleted successfully'
-            });
+        return res.status(200).json({
+            success: true,
+            message: "File deleted successfully",
         });
-
     } catch (error) {
         next(error);
     }
-}
+};
 
-// Update file (replace)
+// =========================
+// Replace / Update File
+// =========================
+
 const updateFile = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -175,41 +197,34 @@ const updateFile = async (req, res, next) => {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded'
+                message: "No file uploaded",
             });
         }
 
         const existingFile = await File.findById(id);
 
         if (!existingFile) {
-            fs.unlink(req.file.path, (err) => {
-                if (err) console.error(err);
-            });
+            await deletePhysicalFile(req.file.path);
 
             return res.status(404).json({
                 success: false,
-                message: 'File not found'
+                message: "File not found",
             });
         }
 
-        const isOwner = existingFile.uploadedBy.toString() === req.user._id.toString();
-        const isAdmin = req.user.role === 'admin';
-
-        if (!isOwner && !isAdmin) {
-            fs.unlink(req.file.path, (err) => {
-                if (err) console.error(err);
-            });
+        if (!isAuthorized(existingFile, req.user)) {
+            await deletePhysicalFile(req.file.path);
 
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update this file'
+                message: "Not authorized to update this file",
             });
         }
 
-        fs.unlink(path.resolve(existingFile.path), (err) => {
-            if (err) console.error(err);
-        });
+        // Delete old physical file
+        await deletePhysicalFile(existingFile.path);
 
+        // Update metadata
         existingFile.originalName = req.file.originalname;
         existingFile.fileName = req.file.filename;
         existingFile.path = req.file.path;
@@ -220,19 +235,17 @@ const updateFile = async (req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            message: 'File updated successfully',
-            data: existingFile
+            message: "File updated successfully",
+            data: existingFile,
         });
-
     } catch (error) {
         if (req.file) {
-            fs.unlink(req.file.path, (err) => {
-                if (err) console.error(err);
-            });
+            await deletePhysicalFile(req.file.path);
         }
+
         next(error);
     }
-}
+};
 
 module.exports = {
     uploadFile,
@@ -240,5 +253,5 @@ module.exports = {
     getAllFiles,
     getFileById,
     deleteFile,
-    updateFile
+    updateFile,
 };

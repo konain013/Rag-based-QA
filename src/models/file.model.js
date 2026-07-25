@@ -21,7 +21,12 @@ const fileSchema = new mongoose.Schema(
         size: {
             type: Number,
             required: true
-        }
+        },
+        uploadedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    }
     },
     { timestamps: true }
 );
