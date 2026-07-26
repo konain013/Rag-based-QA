@@ -1,5 +1,5 @@
 const fs = require("fs/promises");
-const pdfParse = require("pdf-parse");
+const cheerio = require("cheerio");
 
 const {
     validateText,
@@ -8,15 +8,15 @@ const {
 
 const parse = async (filePath) => {
     try {
-        const buffer = await fs.readFile(filePath);
+        const html = await fs.readFile(filePath, "utf8");
 
-        const { text } = await pdfParse(buffer);
+        const $ = cheerio.load(html);
 
         return {
-            text: validateText(text, "PDF"),
+            text: validateText($("body").text(), "HTML"),
         };
     } catch (error) {
-        handleParserError(error, "PDF");
+        handleParserError(error, "HTML");
     }
 };
 

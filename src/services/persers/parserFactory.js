@@ -1,8 +1,8 @@
-const pdfParser = require("./pdf.perser");
-const docxParser = require("./docx.perser");
-const xlsxParser = require("./xlsx.perser");
-const htmlParser = require("./html.perser");
-const markdownParser = require("./markdown.perser");
+const pdfParser = require("./pdf.parser");
+const docxParser = require("./docx.parser");
+const xlsxParser = require("./xlsx.parser");
+const htmlParser = require("./html.parser");
+const markdownParser = require("./markdown.parser");
 const getParser = (extension) => {
     switch (extension.toLowerCase()) {
         case ".pdf":
