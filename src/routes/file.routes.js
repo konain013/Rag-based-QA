@@ -14,11 +14,11 @@ const {
 const authmiddleware = require('../middleware/auth.middleware')
 const authorize = require('../middleware/authorize.middleware')
 
-router.post('/uploads', authmiddleware, upload.single("konain"), uploadFile)
-router.post('/uploads/multiple', authmiddleware, upload.array("konain", 5), uploadMultipleFiles)
+router.post('/uploads', authmiddleware, upload.single("file"), uploadFile)
+router.post('/uploads/multiple', authmiddleware, upload.array("files", 5), uploadMultipleFiles)
 router.get('/all', authmiddleware, authorize("admin", "user"), getAllFiles)
 router.get('/:id', authmiddleware, authorize("admin", "user"), getFileById)
-router.put('/:id', authmiddleware, authorize("admin", "user"), upload.single("konain"), updateFile)
+router.put('/:id', authmiddleware, authorize("admin", "user"), upload.single("file"), updateFile)
 router.delete('/:id', authmiddleware, authorize("admin", "user"), deleteFile)
 
 module.exports = router;

@@ -13,8 +13,15 @@ const storage = multer.diskStorage({
     }
 })
 
-const allowedExtensions =[".jpeg" , ".png" ,".pdf" ,".jpg" ]
-const allowedMimeTypes =["image/jpeg" ,"image/jpg" , "image/png","application/pdf"]
+const allowedExtensions = [ ".pdf", ".doc",".docx",".xls", ".xlsx", ".zip"];
+const allowedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/zip"
+];
 
 const fileFilter = (req , file ,cb)=>{
     const extension = path.extname(file.originalname).toLowerCase();
@@ -25,13 +32,13 @@ const fileFilter = (req , file ,cb)=>{
     if(isExtensionValid && isMimeTypeValid){
         return cb(null , true)
     }
-    return cb(new Error('Only JPG, JPEG , PNG and PDF files are allowed'))
+    return cb(new Error('Only PDF, DOC, DOCX, XLS, XLSX, and ZIP files are allowed'))
 }
 const upload = multer({
     storage,
     fileFilter,
     limits:{
-        fileSize: 5 * 1024 * 1024
+        fileSize: 10 * 1024 * 1024
     }
 })
 module.exports = upload;
