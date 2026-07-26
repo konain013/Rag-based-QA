@@ -1,4 +1,9 @@
-const authorize = (role) => {
+const authorize = (...allowedRoles) => {
+  const roles =
+    allowedRoles.length === 1 && Array.isArray(allowedRoles[0])
+      ? allowedRoles[0]
+      : allowedRoles;
+
   return (req, res, next) => {
     // Check if user is authenticated
     if (!req.user) {
@@ -8,15 +13,14 @@ const authorize = (role) => {
       });
     }
 
-    // Check user role
-    if (req.user.role !== role) {
+    // Check if user's role is allowed
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
       });
     }
 
-    // User is authorized
     next();
   };
 };
