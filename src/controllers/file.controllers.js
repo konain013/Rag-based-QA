@@ -37,7 +37,7 @@ const uploadFile = async (req, res, next) => {
 
         const result = await processFile(req.file, req.user);
 
-        console.log(result.text);
+        // console.log(result.text);
 
         return res.status(201).json({
             success: true,
