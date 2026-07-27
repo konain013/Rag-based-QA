@@ -5,12 +5,18 @@ const {
     handleParserError,
 } = require("./parser.utility");
 
+const { cleanText } = require("../../utils/cleanText");
+
 const parse = async (filePath) => {
     try {
-        const markdown = await fs.readFile(filePath, "utf8");
+        const text = await fs.readFile(filePath, "utf8");
+
+        const cleanedText = cleanText(text);
+
+        validateText(cleanedText);
 
         return {
-            text: validateText(markdown, "Markdown"),
+            text: cleanedText,
         };
     } catch (error) {
         handleParserError(error, "Markdown");

@@ -3,6 +3,7 @@ const path = require("path");
 const File = require("../models/file.model");
 const { getParser } = require("./persers/parserFactory");
 const { splitIntoChunks } = require("./chunking/chunk.service");
+const { generateEmbeddings } = require("./embeddings/embedding.service");
 
 const processFile = async (file, user) => {
   let savedFile = null;
@@ -28,11 +29,17 @@ const processFile = async (file, user) => {
     if (!text?.trim()) {
       throw new Error("No readable text found in the document.");
     }
-
+  // Split text
     const chunks = await splitIntoChunks(text);
+
+    // Generate embeddings
+const chunkEmbeddings = await generateEmbeddings(chunks);
+
+
 
     // test
 console.log(`Generated ${chunks.length} chunks`);
+console.log("Embeddings",chunkEmbeddings);
 // console.log("Total Chunks:", chunks.length);
 
 // chunks.forEach((chunk, index) => {
@@ -44,6 +51,7 @@ console.log(`Generated ${chunks.length} chunks`);
       file: savedFile,
       text,
       chunks,
+      chunkEmbeddings,
     };
   } catch (error) {
     // Rollback MongoDB document

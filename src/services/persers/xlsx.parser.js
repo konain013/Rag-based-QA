@@ -5,6 +5,8 @@ const {
     handleParserError,
 } = require("./parser.utility");
 
+const { cleanText } = require("../../utils/cleanText");
+
 const parse = async (filePath) => {
     try {
         const workbook = XLSX.readFile(filePath);
@@ -18,8 +20,12 @@ const parse = async (filePath) => {
             text += "\n";
         });
 
+        const cleanedText = cleanText(text);
+
+        validateText(cleanedText);
+
         return {
-            text: validateText(text, "XLSX"),
+            text: cleanedText,
         };
     } catch (error) {
         handleParserError(error, "XLSX");
