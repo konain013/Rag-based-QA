@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const connectDB = require('./config/db');
+const { connectDB: connectPostgres } = require("./config/postgre.config");
 
 const authRoutes = require("./routes/auth.routes");
 const errorHandler = require("./middleware/error.middleware");
@@ -11,6 +12,7 @@ const app = express();
 
 // Connect Database
 connectDB();
+connectPostgres(); // Connect to PostgreSQL
 
 // Middlewares
 app.use(express.json());
@@ -18,6 +20,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/file", fileRoutes)
+
 
 // Global Error Handler (Always last middleware)
 app.use(errorHandler);
