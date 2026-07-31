@@ -26,20 +26,22 @@ const generateEmbeddings = async (chunks) => {
 
     const results = [];
 
-    for (const chunk of chunks) {
-        const output = await model(chunk, embeddingConfig.options);
+    for (const [index, chunk] of chunks.entries()) {
 
-        const embedding = Array.from(output.data);
+    const output = await model(chunk, embeddingConfig.options);
 
-        if (!embedding.length) {
-            throw new Error("Failed to generate embedding.");
-        }
+    const embedding = Array.from(output.data);
 
-        results.push({
-            chunk,
-            embedding,
-        });
+    if (!embedding.length) {
+        throw new Error("Failed to generate embedding.");
     }
+
+    results.push({
+        chunkIndex: index,
+        content: chunk,
+        embedding,
+    });
+}
 
     return results;
 };

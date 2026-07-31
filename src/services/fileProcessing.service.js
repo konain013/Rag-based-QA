@@ -4,6 +4,7 @@ const File = require("../models/file.model");
 const { getParser } = require("./persers/parserFactory");
 const { splitIntoChunks } = require("./chunking/chunk.service");
 const { generateEmbeddings } = require("./embeddings/embedding.service");
+const { storeChunks } = require("./vectorStore/vectorstore.services");
 
 const processFile = async (file, user) => {
   let savedFile = null;
@@ -35,11 +36,22 @@ const processFile = async (file, user) => {
     // Generate embeddings
 const chunkEmbeddings = await generateEmbeddings(chunks);
 
+// Prepare metadata for PostgreSQL
+const metadata = {
+  originalName: savedFile.originalName,
+  fileName: savedFile.fileName,
+  mimeType: savedFile.mimeType,
+  size: savedFile.size,
+  extension,
+};
 
-
-    // test
-console.log(`Generated ${chunks.length} chunks`);
-console.log("Embeddings",chunkEmbeddings);
+// Store chunks in PostgreSQL
+await storeChunks({
+  mongoFileId: savedFile._id.toString(),
+  userId: user.userId,
+  metadata,
+  chunks: chunkEmbeddings,
+});
 // console.log("Total Chunks:", chunks.length);
 
 // chunks.forEach((chunk, index) => {
@@ -51,7 +63,6 @@ console.log("Embeddings",chunkEmbeddings);
       file: savedFile,
       text,
       chunks,
-      chunkEmbeddings,
     };
   } catch (error) {
     // Rollback MongoDB document
