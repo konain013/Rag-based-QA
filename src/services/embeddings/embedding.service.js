@@ -16,6 +16,24 @@ const loadModel = async () => {
     return extractor;
 };
 
+const generateEmbedding = async (text) => {
+    if (!text) {
+        throw new Error("Text is required.");
+    }
+
+    const model = await loadModel();
+
+    const output = await model(text, embeddingConfig.options);
+
+    const embedding = Array.from(output.data);
+
+    if (!embedding.length) {
+        throw new Error("Failed to generate embedding.");
+    }
+
+    return embedding;
+};
+
 
 const generateEmbeddings = async (chunks) => {
     if (!Array.isArray(chunks) || chunks.length === 0) {
@@ -28,24 +46,19 @@ const generateEmbeddings = async (chunks) => {
 
     for (const [index, chunk] of chunks.entries()) {
 
-    const output = await model(chunk, embeddingConfig.options);
+        const embedding = await generateEmbedding(chunk);
 
-    const embedding = Array.from(output.data);
-
-    if (!embedding.length) {
-        throw new Error("Failed to generate embedding.");
+        results.push({
+            chunkIndex: index,
+            content: chunk,
+            embedding,
+        });
     }
-
-    results.push({
-        chunkIndex: index,
-        content: chunk,
-        embedding,
-    });
-}
 
     return results;
 };
 
 module.exports = {
+    generateEmbedding,
     generateEmbeddings,
 };

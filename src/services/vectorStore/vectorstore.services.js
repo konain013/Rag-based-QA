@@ -47,6 +47,65 @@ const storeChunks = async ({
 
 };
 
+const searchSimilarChunks = async ({
+    queryEmbedding,
+    userId,
+    fileId = null,
+    limit = 5,
+}) => {
+
+    if (!queryEmbedding?.length) {
+        throw new Error("Query embedding is required.");
+    }
+
+    if (!userId) {
+        throw new Error("User ID is required.");
+    }
+
+    let query = `
+        SELECT
+            chunk_index,
+            content,
+            mongo_file_id,
+            metadata,
+            embedding <=> $2::vector AS distance
+        FROM document_chunks
+        WHERE user_id = $1
+    `;
+
+    const values = [
+        userId,
+        `[${queryEmbedding.join(",")}]`,
+    ];
+
+    // File-specific search
+    if (fileId) {
+        query += ` AND mongo_file_id = $3`;
+        values.push(fileId);
+
+        query += `
+            ORDER BY embedding <=> $2::vector
+            LIMIT $4;
+        `;
+
+        values.push(limit);
+    }
+    // Global search (all user's files)
+    else {
+        query += `
+            ORDER BY embedding <=> $2::vector
+            LIMIT $3;
+        `;
+
+        values.push(limit);
+    }
+
+    const { rows } = await pool.query(query, values);
+
+    return rows;
+};
+
 module.exports = {
     storeChunks,
+    searchSimilarChunks
 };

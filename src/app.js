@@ -7,6 +7,7 @@ const { connectDB: connectPostgres } = require("./config/postgre.config");
 const authRoutes = require("./routes/auth.routes");
 const errorHandler = require("./middleware/error.middleware");
 const fileRoutes = require("./routes/file.routes");
+const chatRoutes = require("./routes/chat.routes");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/file", fileRoutes)
+app.use("/api/chat", chatRoutes);
 
 
 // Global Error Handler (Always last middleware)
