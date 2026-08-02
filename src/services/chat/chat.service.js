@@ -2,6 +2,8 @@ const { generateEmbedding } = require("../embeddings/embedding.service");
 
 const { searchSimilarChunks } = require("../vectorStore/vectorstore.services");
 
+const { buildPrompt } = require("../prompt/prompt.service");
+
 const askQuestion = async ({ question, fileId ,userId }) => {
 
     if (!question || !question.trim()) {
@@ -17,6 +19,14 @@ const askQuestion = async ({ question, fileId ,userId }) => {
         userId,
         fileId
     });
+
+    //test
+    const prompt = buildPrompt({
+    question,
+    relevantChunks,
+});
+console.log("Prompt generated:", prompt);
+console.log(prompt);
 
     return relevantChunks;
 };

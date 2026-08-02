@@ -6,7 +6,7 @@ const chat = async (req, res, next) => {
         // console.log(question)
         // console.log(typeof question)
 
-        const chunks = await askQuestion({
+        const relevantChunks = await askQuestion({
             question,
             userId,
             fileId
@@ -15,7 +15,7 @@ const chat = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: "Relevant chunks retrieved successfully.",
-            data: chunks,
+            data:relevantChunks ,
         });
 
     } catch (error) {

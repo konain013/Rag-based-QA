@@ -51,7 +51,7 @@ const searchSimilarChunks = async ({
     queryEmbedding,
     userId,
     fileId = null,
-    limit = 5,
+    limit = 2,
 }) => {
 
     if (!queryEmbedding?.length) {
