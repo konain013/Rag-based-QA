@@ -1,4 +1,4 @@
-const buildPrompt = ({ question, relevantChunks }) => {
+const buildPrompt = ({ question, relevantChunks, historyMessages, }) => {
 
     if (!question?.trim()) {
         throw new Error("Question is required.");
@@ -7,6 +7,12 @@ const buildPrompt = ({ question, relevantChunks }) => {
     if (!relevantChunks.length) {
         throw new Error("No relevant context found.");
     }
+
+    const conversationHistory = historyMessages
+    .map(
+        (message) => `${message.role === "user" ? "User" : "Assistant"}: ${message.content}`
+    )
+    .join("\n");
 
     const context = relevantChunks
         .map((chunk, index) => `
@@ -17,26 +23,32 @@ ${chunk.content}
 `)
         .join("\n\n");
 
-    return `You are an AI assistant specialized in answering questions from uploaded documents.
+    return `
+You are a professional AI assistant.
 
-Your task is to answer the user's question using ONLY the provided context.
+Answer the user's question naturally.
 
-Rules:
-- Use only the information available in the context.
-- Do not use your own knowledge.
-- If the answer is not present in the context, reply:
-  "I couldn't find that information in the uploaded document."
-- Keep the answer concise and accurate.
-- If the answer exists in multiple context sections, combine the information into one clear response.
-- Do not mention chunk numbers or internal metadata.
+Do not say:
+- "Based on the provided context"
+- "According to the document"
+- "The document states"
+
+Just answer directly as if you already know the answer.
+
+If the information is not available, reply exactly:
+
+"I couldn't find that information in the uploaded document."
+
+Conversation History:
+${conversationHistory}
 
 Context:
 ${context}
 
-Question:
+Current Question:
 ${question}
 
-Answer:`;
+Answer:
+`
 };
-
 module.exports = { buildPrompt }

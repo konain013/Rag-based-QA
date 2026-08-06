@@ -1,7 +1,7 @@
 module.exports = {
     chunking: {
-        chunkSize: 500,
-        chunkOverlap: 50,
+        chunkSize: 1000,
+        chunkOverlap: 150,
         separators: ["\n\n","\n",". "," ","", ],
     },
 };

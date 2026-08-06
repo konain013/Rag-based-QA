@@ -51,7 +51,7 @@ const searchSimilarChunks = async ({
     queryEmbedding,
     userId,
     fileId = null,
-    limit = 2,
+    limit = 5,
 }) => {
 
     if (!queryEmbedding?.length) {
@@ -104,6 +104,8 @@ const searchSimilarChunks = async ({
 
     return rows;
 };
+
+
 
 module.exports = {
     storeChunks,

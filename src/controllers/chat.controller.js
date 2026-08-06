@@ -2,14 +2,15 @@ const { askQuestion } = require("../services/chat/chat.service");
 
 const chat = async (req, res, next) => {
     try {
-        const { question , fileId , userId} = req.body;
+        const { question , fileId , userId, sessionId} = req.body;
         // console.log(question)
         // console.log(typeof question)
 
         const relevantChunks = await askQuestion({
             question,
             userId,
-            fileId
+            fileId,
+            sessionId,
         });
 
         return res.status(200).json({
