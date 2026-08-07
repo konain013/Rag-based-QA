@@ -1,57 +1,48 @@
 # Conversational RAG-Based Question Answering System
 
-A backend application built with **Node.js** and **Express.js** that enables users to upload documents and ask natural language questions about their content using **Retrieval-Augmented Generation (RAG)**.
+A backend system that lets users upload documents and have a real conversation about their content — powered by Retrieval-Augmented Generation (RAG), local embeddings, and vector similarity search.
 
-The system retrieves the most relevant document chunks through vector similarity search and generates context-aware responses using Large Language Models, while maintaining conversational memory across chat sessions.
+Instead of dumping an entire document into an LLM's context window, this system breaks documents into meaningful chunks, embeds them, retrieves only the most relevant pieces for a given question, and generates grounded, context-aware answers — while remembering the conversation so far.
+
+---
+
+## Why this project
+
+Most "chat with your PDF" tutorials stop at a single file and a single question. This system is built to handle **multiple documents per user**, **multi-turn conversations**, and **real failure scenarios** (LLM provider downtime, mixed file formats, per-user data isolation) — the parts that actually make a RAG system usable rather than a demo.
 
 ---
 
 ## Features
 
-- JWT Authentication
-- Secure Document Upload
-- Multi-Format Document Parsing
-- Automatic Text Chunking
-- Local Embedding Generation
-- Vector Similarity Search (pgvector)
-- Prompt Engineering
-- Conversational Chat Memory
-- File-Specific Search
-- Global Search Across User Documents
-- Groq Integration
-- Gemini Fallback Integration
+- **JWT Authentication** — secure, per-user access to documents and chats
+- **Secure Document Upload** — validated uploads via Multer
+- **Multi-Format Document Parsing** — PDF, DOCX, XLSX, HTML, Markdown, handled through a parser factory pattern
+- **Automatic Text Chunking** — recursive, structure-aware splitting so context isn't broken mid-thought
+- **Local Embedding Generation** — no external API calls needed just to embed text
+- **Vector Similarity Search** — powered by PostgreSQL + pgvector
+- **Conversational Chat Memory** — each session remembers prior turns, so follow-up questions work naturally
+- **File-Specific & Global Search** — ask questions scoped to one document or across everything you've uploaded
+- **LLM Fallback Handling** — Groq as primary provider, Gemini as automatic fallback if Groq is unavailable
 
 ---
 
 ## Tech Stack
 
-**Backend**
-- Node.js
-- Express.js
+| Layer | Technology |
+|---|---|
+| Backend | Node.js, Express.js |
+| Relational / Metadata DB | MongoDB |
+| Vector Storage | PostgreSQL + pgvector |
+| Embeddings | Transformers.js — `BAAI/bge-small-en-v1.5` (runs locally) |
+| LLM Providers | Groq API (primary), Google Gemini API (fallback) |
+| Auth | JSON Web Tokens (JWT) |
+| File Upload | Multer |
 
-**Databases**
-- MongoDB
-- PostgreSQL
-- pgvector
+**Supported file types:** PDF · DOCX · XLSX · HTML · Markdown
 
-**AI & NLP**
-- Transformers.js
-- BAAI/bge-small-en-v1.5
-- Groq API
-- Google Gemini API
+### Why two databases?
 
-**Authentication**
-- JSON Web Token (JWT)
-
-**File Upload**
-- Multer
-
-**Supported File Types**
-- PDF
-- DOCX
-- XLSX
-- HTML
-- Markdown
+MongoDB stores document and chat metadata (flexible, document-shaped data that doesn't need relational structure), while PostgreSQL + pgvector handles chunk embeddings and similarity search, where indexed vector operations matter. Each database is used for what it's actually good at, rather than forcing everything into one store.
 
 ---
 
@@ -61,111 +52,48 @@ The system retrieves the most relevant document chunks through vector similarity
 flowchart TD
 
 A[User] --> B[Express API]
-
 B --> C[Authentication]
-
 B --> D[Upload Controller]
-
 D --> E[Parser Factory]
-
 E --> F[Extract Text]
-
 F --> G[Chunking]
-
 G --> H[Embedding Generation]
-
 H --> I[(PostgreSQL + pgvector)]
 
 A --> J[Ask Question]
-
 J --> K[Generate Query Embedding]
-
 K --> L[Vector Similarity Search]
-
 L --> I
-
 I --> M[Retrieve Relevant Chunks]
-
 M --> N[Load Conversation History]
-
 N --> O[Prompt Builder]
-
 O --> P[Groq]
-
 P -->|Fallback| Q[Gemini]
-
 P --> R[Final Response]
-
 Q --> R
 ```
 
 ---
 
-## Project Workflow
+## How a Question Gets Answered
 
-The application follows a complete Retrieval-Augmented Generation (RAG) pipeline.
-
-```text
-Upload Document
-      │
-      ▼
-Store Metadata (MongoDB)
-      │
-      ▼
-Parse Document
-      │
-      ▼
-Extract Text
-      │
-      ▼
-Chunk Text
-      │
-      ▼
-Generate Embeddings
-      │
-      ▼
-Store Chunks & Embeddings (PostgreSQL)
-      │
-      ▼
-───────────────────────────────────────
-
-User Asks Question
-      │
-      ▼
-Generate Query Embedding
-      │
-      ▼
-Similarity Search
-      │
-      ▼
-Retrieve Relevant Chunks
-      │
-      ▼
-Load Conversation History
-      │
-      ▼
-Build Prompt
-      │
-      ▼
-Groq
-      │
-      ├──────────────► Success
-      │
-      ▼
-Gemini (Fallback)
-      │
-      ▼
-Save Assistant Response
-      │
-      ▼
-Return Final Answer
-```
+1. **Upload** — document metadata is stored in MongoDB
+2. **Parse** — text is extracted based on file type via the parser factory
+3. **Chunk** — text is split into overlapping, context-preserving segments
+4. **Embed** — each chunk is converted into a vector locally (no external API call)
+5. **Store** — chunks + embeddings are saved in PostgreSQL via pgvector
+6. **Ask** — user's question is embedded the same way
+7. **Retrieve** — the most similar chunks are pulled via vector similarity search
+8. **Recall** — prior conversation turns are loaded for context
+9. **Build Prompt** — retrieved chunks + chat history are assembled into a single prompt
+10. **Generate** — Groq produces the answer; Gemini steps in automatically if Groq fails
+11. **Persist** — the assistant's response is saved, so future questions stay in context
 
 ---
 
 ## Project Structure
 
-```text
+```
 src
 │
 ├── config
@@ -187,43 +115,26 @@ src
 
 ---
 
-## Installation
-
-Clone the repository
+## Getting Started
 
 ```bash
-git clone <repository-url>
-```
+# Clone the repository
+git clone https://github.com/konain013/Rag-based-QA.git
+cd Rag-based-QA
 
-Move into the project directory
-
-```bash
-cd <project-folder>
-```
-
-Install dependencies
-
-```bash
+# Install dependencies
 npm install
-```
 
-Run the development server
-
-```bash
+# Run in development mode
 npm run dev
-```
 
-Or start the application
-
-```bash
+# Or start normally
 npm start
 ```
 
----
+### Environment Variables
 
-## Environment Variables
-
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file in the project root:
 
 ```env
 # Server
@@ -247,40 +158,28 @@ GEMINI_API_KEY=
 
 ## API Overview
 
-| Method | Endpoint              | Description                             |
-|--------|------------------------|------------------------------------------|
-| POST   | `/api/auth/register`   | Register a new user                     |
-| POST   | `/api/auth/login`      | Authenticate user                       |
-| POST   | `/api/files/upload`    | Upload a document                       |
-| POST   | `/api/chat`             | Ask questions about uploaded documents  |
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Authenticate user |
+| POST | `/api/files/upload` | Upload a document |
+| POST | `/api/chat` | Ask questions about uploaded documents |
 
 ---
 
-## Example Workflow
+## Roadmap
 
-1. Register a new account.
-2. Log in to receive a JWT token.
-3. Upload one or more supported documents.
-4. The system extracts and processes the document text.
-5. Text is divided into chunks.
-6. Embeddings are generated locally.
-7. Chunks and embeddings are stored in PostgreSQL.
-8. Ask questions about the uploaded documents.
-9. The system retrieves the most relevant chunks.
-10. A prompt is built using the retrieved context and conversation history.
-11. Groq generates the response.
-12. If Groq is unavailable, Gemini automatically handles the request.
-13. The assistant's response is stored to support future conversations.
+Planned improvements, not yet implemented:
+
+- Hybrid search (keyword + vector)
+- Semantic chunking
+- OCR support for scanned documents
+- Streaming responses
+- Response citations (source attribution)
+- Re-ranking models
+- Redis caching
+- Rate limiting
+- Multi-modal document support
 
 ---
 
-## Future Improvements
-
-- Hybrid Search
-- Semantic Chunking
-- OCR Support
-- Streaming Responses
-- Response Citations
-- Re-ranking Models
-- Redis Caching
-- Multi-Modal Document Support
